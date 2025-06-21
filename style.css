@@ -159,3 +159,22 @@ input[type="radio"] {
     padding: 2rem;
   }
   }
+.hidden {
+  display: none;
+}
+
+.payment-method {
+  cursor: pointer;
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
+  user-select: none;
+}
+
+.payment-method.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+  }
