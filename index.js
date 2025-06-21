@@ -1,4 +1,3 @@
-
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const twilio = require("twilio");
@@ -43,4 +42,61 @@ exports.submitVote = functions.https.onCall(async (data) => {
   await db.ref(`verifiedPhones/${phone}`).remove();
 
   return { success: true };
+});
+app.post('/submit-vote', async (req, res) => {
+  const { phone, name, category, contestant, payment } = req.body;
+
+  // Optional: Save vote to a database or send confirmation SMS
+  console.log('New vote received:', { phone, name, category, contestant, payment });
+
+  try {
+    // You can also send a confirmation SMS
+    await client.messages.create({
+      body: `Hi ${name}, your vote for ${contestant} in the ${category} category was received!`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: phone
+    });
+
+    res.json({ success: true, message: "Vote submitted successfully." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+document.getElementById("votingForm").onsubmit = async (e) => {
+  e.preventDefault();
+  if (!verifiedPhone) return alert("Please verify your phone first.");
+
+  const name = document.getElementById("voterName").value.trim();
+  const category = document.getElementById("category").value;
+  const contestant = document.querySelector('input[name="contestant"]:checked').value;
+  const paymentEl = document.querySelector(".payment-method.selected");
+  const payment = paymentEl ? paymentEl.dataset.method : null;
+
+  if (!payment) return alert("Please select a payment method.");
+
+  try {
+    const res = await fetch("http://localhost:3000/submit-vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: verifiedPhone, name, category, contestant, payment }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert("🎉 Vote submitted successfully!");
+      document.getElementById("votingForm").reset();
+      verifiedPhone = null;
+      document.getElementById("otpSection").classList.add("hidden");
+    } else {
+      alert("Failed to submit vote: " + data.message);
+    }
+  } catch (err) {
+    alert("Error submitting vote: " + err.message);
+  }
+};
+document.querySelectorAll(".payment-method").forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll(".payment-method").forEach(e => e.classList.remove("selected"));
+    el.classList.add("selected");
+  };
 });
