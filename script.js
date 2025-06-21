@@ -1,11 +1,13 @@
 let verifiedPhone = null;
 
-const API_BASE = "https://us-central1-eventvotingapp-4cb94-2a6c9.cloudfunctions.net/api"; // Replace with your deployed Firebase Function URL
+const API_BASE = "https://us-central1-eventvotingapp-4cb94-2a6c9.cloudfunctions.net/api";
 
 // Send OTP
 document.getElementById("sendCodeBtn").onclick = async () => {
   const phone = document.getElementById("voterPhone").value.trim();
-  if (!phone) return alert("Please enter your phone number.");
+  if (!phone.startsWith("+")) {
+    return alert("Please enter phone number in international format (e.g. +232xxxxxxxxx)");
+  }
 
   try {
     const res = await fetch(`${API_BASE}/send-code`, {
@@ -13,6 +15,7 @@ document.getElementById("sendCodeBtn").onclick = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),
     });
+
     const data = await res.json();
 
     if (data.success) {
@@ -21,13 +24,14 @@ document.getElementById("sendCodeBtn").onclick = async () => {
         alert("Phone already verified!");
         document.getElementById("otpSection").classList.add("hidden");
       } else {
-        alert("OTP sent! Please check your phone.");
+        alert("OTP sent! Check your phone.");
         document.getElementById("otpSection").classList.remove("hidden");
       }
     } else {
       alert("Failed to send OTP: " + (data.message || "Unknown error"));
     }
   } catch (err) {
+    console.error("Fetch error:", err);
     alert("Error sending OTP: " + err.message);
   }
 };
@@ -36,7 +40,7 @@ document.getElementById("sendCodeBtn").onclick = async () => {
 document.getElementById("verifyBtn").onclick = async () => {
   const phone = document.getElementById("voterPhone").value.trim();
   const code = document.getElementById("otpInput").value.trim();
-  if (!phone || !code) return alert("Please enter both phone and OTP code.");
+  if (!phone || !code) return alert("Please enter phone and OTP code.");
 
   try {
     const res = await fetch(`${API_BASE}/verify-code`, {
@@ -48,17 +52,17 @@ document.getElementById("verifyBtn").onclick = async () => {
 
     if (data.success) {
       verifiedPhone = phone;
-      alert("Phone verified successfully!");
+      alert("✅ Phone verified successfully!");
       document.getElementById("otpSection").classList.add("hidden");
     } else {
-      alert("Verification failed: " + (data.message || "Invalid code"));
+      alert("❌ Incorrect code: " + (data.message || "Invalid code"));
     }
   } catch (err) {
     alert("Error verifying OTP: " + err.message);
   }
 };
 
-// Payment method selection UI
+// Handle payment method UI
 document.querySelectorAll(".payment-method").forEach((el) => {
   el.onclick = () => {
     document.querySelectorAll(".payment-method").forEach((e) => e.classList.remove("selected"));
@@ -66,7 +70,7 @@ document.querySelectorAll(".payment-method").forEach((el) => {
   };
 });
 
-// Voting form submission
+// Submit vote
 document.getElementById("votingForm").onsubmit = async (e) => {
   e.preventDefault();
 
@@ -75,19 +79,27 @@ document.getElementById("votingForm").onsubmit = async (e) => {
   const name = document.getElementById("voterName").value.trim();
   const category = document.getElementById("category").value;
   const contestantInput = document.querySelector('input[name="contestant"]:checked');
-  if (!contestantInput) return alert("Please select a contestant.");
-  const contestant = contestantInput.value;
-
   const paymentEl = document.querySelector(".payment-method.selected");
+
+  if (!contestantInput) return alert("Please select a contestant.");
   if (!paymentEl) return alert("Please select a payment method.");
+
+  const contestant = contestantInput.value;
   const payment = paymentEl.dataset.method;
 
   try {
     const res = await fetch(`${API_BASE}/submit-vote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: verifiedPhone, name, category, contestant, payment }),
+      body: JSON.stringify({
+        phone: verifiedPhone,
+        name,
+        category,
+        contestant,
+        payment
+      }),
     });
+
     const data = await res.json();
 
     if (data.success) {
@@ -97,7 +109,7 @@ document.getElementById("votingForm").onsubmit = async (e) => {
       document.getElementById("otpSection").classList.add("hidden");
       document.querySelectorAll(".payment-method").forEach((e) => e.classList.remove("selected"));
     } else {
-      alert("Failed to submit vote: " + (data.message || "Unknown error"));
+      alert("Vote failed: " + (data.message || "Unknown error"));
     }
   } catch (err) {
     alert("Error submitting vote: " + err.message);
