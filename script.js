@@ -1,46 +1,54 @@
-
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MSG_ID",
-  appId: "YOUR_APP_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const functions = getFunctions(app);
 let verifiedPhone = null;
 
 document.getElementById("sendCodeBtn").onclick = async () => {
   const phone = document.getElementById("voterPhone").value.trim();
-  await httpsCallable(functions, "sendOtp")({ phone });
-  document.getElementById("otpSection").classList.remove("hidden");
+
+  try {
+    const res = await fetch("http://localhost:3000/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById("otpSection").classList.remove("hidden");
+      alert("OTP sent to your phone.");
+    } else {
+      alert("Failed to send OTP: " + data.message);
+    }
+  } catch (err) {
+    alert("Error sending OTP: " + err.message);
+  }
 };
 
 document.getElementById("verifyBtn").onclick = async () => {
   const phone = document.getElementById("voterPhone").value.trim();
   const code = document.getElementById("otpInput").value.trim();
-  await httpsCallable(functions, "verifyOtp")({ phone, code });
-  verifiedPhone = phone;
-  alert("Phone verified! You can vote.");
+
+  try {
+    const res = await fetch("http://localhost:3000/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      verifiedPhone = phone;
+      alert("✅ Phone verified! You can vote now.");
+    } else {
+      alert("❌ Verification failed: Incorrect OTP.");
+    }
+  } catch (err) {
+    alert("Error verifying OTP: " + err.message);
+  }
 };
 
 document.getElementById("votingForm").onsubmit = async (e) => {
   e.preventDefault();
-  if (!verifiedPhone) return alert("Please verify phone first.");
+  if (!verifiedPhone) return alert("Please verify your phone first.");
+
   const name = document.getElementById("voterName").value.trim();
   const category = document.getElementById("category").value;
-  const contestant = document.querySelector('input[name="contestant"]:checked').value;
-  const payment = document.querySelector(".payment-method.selected").dataset.method;
-  try {
-    await httpsCallable(functions, "submitVote")({ phone: verifiedPhone, name, category, contestant, payment });
-    alert("Vote submitted.");
-    votingForm.reset();
-  } catch (err) {
-    alert(err.message);
-  }
-};
+  const contestant =
