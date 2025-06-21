@@ -1,141 +1,109 @@
 const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
 const twilio = require("twilio");
+const admin = require("firebase-admin");
 
+// Initialize Firebase Admin SDK
 admin.initializeApp();
 const db = admin.database();
 
-const accountSid = "ACc5d16a844574c6278120710388c7f79c";
-const authToken = "[AuthToken]";
-const verifySid = "VA0b849af60b0ad4bca381373f687ec834";
+// Load env variables in functions folder (optional if using Firebase config)
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Twilio credentials from env variables
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const verifySid = process.env.TWILIO_VERIFY_SID;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
 const client = twilio(accountSid, authToken);
 
-// Send OTP
-exports.sendOtp = functions.https.onCall(async ({ phone }) => {
-  await client.verify.v2.services(verifySid)
-    .verifications.create({ to: phone, channel: "sms" });
-  return { success: true };
-});
-
-// Verify OTP
-exports.verifyOtp = functions.https.onCall(async ({ phone, code }) => {
-  const resp = await client.verify.v2.services(verifySid)
-    .verificationChecks.create({ to: phone, code });
-  if (resp.status === "approved") {
-    await db.ref(`verifiedPhones/${phone}`).set({ verified: true, timestamp: Date.now() });
-    return { success: true };
-  }
-  throw new functions.https.HttpsError("invalid-argument", "Invalid code");
-});
-
-// Submit vote
-exports.submitVote = functions.https.onCall(async (data) => {
-  const { phone, name, category, contestant, payment } = data;
-  const vr = await db.ref(`verifiedPhones/${phone}`).get();
-  if (!vr.exists()) throw new functions.https.HttpsError("failed-precondition", "Phone not verified");
-
-  const voteRef = db.ref(`votes/${category}/${encodeURIComponent(phone)}`);
-  const existing = await voteRef.get();
-  if (existing.exists()) throw new functions.https.HttpsError("already-exists", "Already voted in this category");
-
-  await voteRef.set({ name, contestant, payment, timestamp: Date.now() });
-  await db.ref(`verifiedPhones/${phone}`).remove();
-
-  return { success: true };
-});
-app.post('/submit-vote', async (req, res) => {
-  const { phone, name, category, contestant, payment } = req.body;
-
-  // Optional: Save vote to a database or send confirmation SMS
-  console.log('New vote received:', { phone, name, category, contestant, payment });
-
+// Check if phone is verified
+app.post("/check-phone-verified", async (req, res) => {
+  const { phone } = req.body;
   try {
-    // You can also send a confirmation SMS
-    await client.messages.create({
-      body: `Hi ${name}, your vote for ${contestant} in the ${category} category was received!`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone
-    });
-
-    res.json({ success: true, message: "Vote submitted successfully." });
+    const snapshot = await db.ref(`verifiedPhones/${phone}`).get();
+    res.json({ success: true, alreadyVerified: snapshot.exists() });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-document.getElementById("votingForm").onsubmit = async (e) => {
-  e.preventDefault();
-  if (!verifiedPhone) return alert("Please verify your phone first.");
 
-  const name = document.getElementById("voterName").value.trim();
-  const category = document.getElementById("category").value;
-  const contestant = document.querySelector('input[name="contestant"]:checked').value;
-  const paymentEl = document.querySelector(".payment-method.selected");
-  const payment = paymentEl ? paymentEl.dataset.method : null;
-
-  if (!payment) return alert("Please select a payment method.");
-
-  try {
-    const res = await fetch("http://localhost:3000/submit-vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: verifiedPhone, name, category, contestant, payment }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      alert("🎉 Vote submitted successfully!");
-      document.getElementById("votingForm").reset();
-      verifiedPhone = null;
-      document.getElementById("otpSection").classList.add("hidden");
-    } else {
-      alert("Failed to submit vote: " + data.message);
-    }
-  } catch (err) {
-    alert("Error submitting vote: " + err.message);
-  }
-};
-document.querySelectorAll(".payment-method").forEach(el => {
-  el.onclick = () => {
-    document.querySelectorAll(".payment-method").forEach(e => e.classList.remove("selected"));
-    el.classList.add("selected");
-  };
-});
-require('dotenv').config();
-const express = require('express');
-const twilio = require('twilio');
-const cors = require('cors');
-
-const app = express();
-app.use(express.json());
-app.use(cors()); // allow requests from frontend
-
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-// ✅ Send OTP
-app.post('/send-code', async (req, res) => {
+// Send OTP (only if not verified)
+app.post("/send-code", async (req, res) => {
   const { phone } = req.body;
   try {
-    const verification = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
-      .verifications.create({ to: phone, channel: 'sms' });
+    const snapshot = await db.ref(`verifiedPhones/${phone}`).get();
+    if (snapshot.exists()) {
+      return res.json({ success: true, alreadyVerified: true });
+    }
+    const verification = await client.verify.v2
+      .services(verifySid)
+      .verifications.create({ to: phone, channel: "sms" });
     res.json({ success: true, sid: verification.sid });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// ✅ Verify OTP
-app.post('/verify-code', async (req, res) => {
+// Verify OTP
+app.post("/verify-code", async (req, res) => {
   const { phone, code } = req.body;
   try {
-    const check = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
+    const check = await client.verify.v2
+      .services(verifySid)
       .verificationChecks.create({ to: phone, code });
-    res.json({ success: check.status === 'approved' });
+    if (check.status === "approved") {
+      await db.ref(`verifiedPhones/${phone}`).set({
+        verified: true,
+        timestamp: Date.now(),
+      });
+      return res.json({ success: true });
+    }
+    res.json({ success: false, message: "Invalid code" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+// Submit vote
+app.post("/submit-vote", async (req, res) => {
+  const { phone, name, category, contestant, payment } = req.body;
+  try {
+    const verifiedSnapshot = await db.ref(`verifiedPhones/${phone}`).get();
+    if (!verifiedSnapshot.exists()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Phone not verified" });
+    }
+
+    const voteRef = db.ref(`votes/${category}/${encodeURIComponent(phone)}`);
+    const existingVote = await voteRef.get();
+    if (existingVote.exists()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Already voted in this category" });
+    }
+
+    await voteRef.set({ name, contestant, payment, timestamp: Date.now() });
+
+    // Optional: send confirmation SMS
+    await client.messages.create({
+      body: `Hi ${name}, your vote for ${contestant} in the ${category} category was received!`,
+      from: twilioPhoneNumber,
+      to: phone,
+    });
+
+    res.json({ success: true, message: "Vote submitted successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
+
+// Export the Express app as a Firebase Function
+exports.api = functions.https.onRequest(app);
