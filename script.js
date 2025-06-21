@@ -1,6 +1,6 @@
 let verifiedPhone = null;
 
-const API_BASE = "https://eventvotingapp-4cb94default-rtdb.firebaseio.com"; // Replace with your deployed Firebase Function URL
+const API_BASE = "https://us-central1-eventvotingapp-4cb94-2a6c9.cloudfunctions.net/api"; // Replace with your deployed Firebase Function URL
 
 // Send OTP
 document.getElementById("sendCodeBtn").onclick = async () => {
