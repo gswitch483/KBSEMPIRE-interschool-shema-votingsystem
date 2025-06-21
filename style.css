@@ -230,6 +230,35 @@ body {
   display: none;
 }
 
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 1s ease-out 1.1s both;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #8b5cf6;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
 /* Animations */
 @keyframes slideDown {
   from {
@@ -282,13 +311,21 @@ body {
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-5px);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(5px);
   }
 }
@@ -318,32 +355,4 @@ body {
   .payment-methods {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  animation: fadeInUp 1s ease-out 1.1s both;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #8b5cf6;
-  margin-bottom: 0.5rem;
-}
-
-.stat-label {
-  color: #64748b;
-  font-weight: 500;
-}
+  }
