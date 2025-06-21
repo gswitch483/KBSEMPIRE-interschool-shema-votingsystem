@@ -100,3 +100,42 @@ document.querySelectorAll(".payment-method").forEach(el => {
     el.classList.add("selected");
   };
 });
+require('dotenv').config();
+const express = require('express');
+const twilio = require('twilio');
+const cors = require('cors');
+
+const app = express();
+app.use(express.json());
+app.use(cors()); // allow requests from frontend
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// ✅ Send OTP
+app.post('/send-code', async (req, res) => {
+  const { phone } = req.body;
+  try {
+    const verification = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
+      .verifications.create({ to: phone, channel: 'sms' });
+    res.json({ success: true, sid: verification.sid });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ✅ Verify OTP
+app.post('/verify-code', async (req, res) => {
+  const { phone, code } = req.body;
+  try {
+    const check = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
+      .verificationChecks.create({ to: phone, code });
+    res.json({ success: check.status === 'approved' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+});
