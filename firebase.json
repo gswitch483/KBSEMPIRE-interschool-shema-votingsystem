@@ -1,15 +1,4 @@
-
-{
-  "hosting": {
-    "public": "public",
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
-  "functions": {
-    "source": "functions"
-  }
-}
+cd path/to/your/firebase-project
+firebase functions:config:set twilio.sid="ACc5d16a844574c6278120710388c7f79c" \
+                              twilio.token="ba3cac6ad9fc4f496c9da70b336484ab" \
+                              twilio.verify_sid="VA0b849af60b0ad4bca381373f687ec834"
