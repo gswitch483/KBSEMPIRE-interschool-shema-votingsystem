@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grand Voting App</title>
+</head>
+<body>
+  <h1>Vote Now</h1>
+
+  <form id="votingForm">
+    <label for="voterName">Name:</label>
+    <input type="text" id="voterName" required><br><br>
+
+    <label for="voterPhone">Phone:</label>
+    <input type="tel" id="voterPhone" required><br><br>
+
+    <button type="button" id="sendCodeBtn">Send Code</button><br><br>
+
+    <div id="otpSection" class="hidden">
+      <label for="otpInput">Enter OTP:</label>
+      <input type="text" id="otpInput" required>
+      <button type="button" id="verifyBtn">Verify Code</button>
+    </div><br><br>
+
+    <label for="category">Category:</label>
+    <select id="category" required>
+      <option value="beauty">Beauty Contest</option>
+      <option value="dolomite">Dolomite Competition</option>
+    </select><br><br>
+
+    <label>Select Contestant:</label><br>
+    <label><input type="radio" name="contestant" value="Contestant A" required> Contestant A</label><br>
+    <label><input type="radio" name="contestant" value="Contestant B"> Contestant B</label><br><br>
+
+    <label>Select Payment Method:</label><br>
+    <div class="payment-method" data-method="mobile_money">📱 Mobile Money</div>
+    <div class="payment-method" data-method="bank_transfer">🏦 Bank Transfer</div><br><br>
+
+    <button type="submit">Submit Vote</button>
+  </form>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
