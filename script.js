@@ -1,6 +1,6 @@
 let verifiedPhone = null;
 
-const API_BASE = "https://us-central1-eventvotingapp-4cb94-2a6c9.cloudfunctions.net/api";
+const API_BASE = "https://us-central1-eventvotingapp-4cb94.cloudfunctions.net/api";
 
 // Send OTP
 document.getElementById("sendCodeBtn").onclick = async () => {
